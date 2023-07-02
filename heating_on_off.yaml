@@ -34,10 +34,10 @@ template:
                   {% set ns.price = ns.price + (item.PriceNoTax * 100) | float %}   
                 {% endfor %}
                 {% if ns.price < ns.cheapestprice %}
-                    {% set ns.begin = begin.isoformat() %}
-                    {% set ns.cheapestprice = ns.price %}
-                    {% set ns.end = end.isoformat() %}
-                  {% endif %}
+                  {% set ns.begin = begin.isoformat() %}
+                  {% set ns.cheapestprice = ns.price %}
+                  {% set ns.end = end.isoformat() %}
+                {% endif %}
               {% endfor %}
               {% set res = {"begin_timestamp": ns.begin, "end_timestamp": ns.end, "total_price": ns.cheapestprice | round(2), "between": periodStart | string + " - " + periodEnd | string} %} 
               {{ res }}
