@@ -1,0 +1,63 @@
+template:
+  - sensor:
+      - name: shf_heating_on
+        device_class: timestamp
+        state: >
+          {# Add sensor name to sensorName variable #}
+          {% set sensorName = "shf_heating_on" %}
+
+          {# Do not edit template below this line #}
+          {% if state_attr("sensor." + sensorName, "period") %}
+            {% set begin = state_attr("sensor." + sensorName, "period")["begin_timestamp"] %}
+            {{ as_datetime(begin).isoformat() }}
+          {% else %}
+            {{ 0 }}
+          {% endif %}
+          {# end of template #}
+        attributes:
+          period: >
+            {% if state_attr("sensor.shf_electricity_price_now", "data") %}
+
+              {# Sensor settings for period length and hours to look for cheapest period #}
+              {% set periodStart = 0 %}
+              {% set periodEnd = 7 %}
+              {% set periodLength = 3 %}
+
+              {# Do not edit template below this line #}
+              {% set data = state_attr("sensor.shf_electricity_price_now", "data") %}
+              {% set ns = namespace(price=0, cheapestprice=999999, begin=0, end=0) %}
+              {% for item in data if as_datetime(item.DateTime).day == now().day and as_datetime(item.DateTime).hour >= periodStart and as_datetime(item.DateTime).hour <= (periodEnd - periodLength)%}
+                {% set ns.price = 0 %} 
+                {% set begin = as_datetime(item.DateTime) %}
+                {% set end = begin + timedelta( hours = periodLength ) %}
+                {% for item in data if as_datetime(item.DateTime) >= begin and as_datetime(item.DateTime) < end %}
+                  {% set ns.price = ns.price + (item.PriceNoTax * 100) | float %}   
+                {% endfor %}
+                {% if ns.price < ns.cheapestprice %}
+                    {% set ns.begin = begin.isoformat() %}
+                    {% set ns.cheapestprice = ns.price %}
+                    {% set ns.end = end.isoformat() %}
+                  {% endif %}
+              {% endfor %}
+              {% set res = {"begin_timestamp": ns.begin, "end_timestamp": ns.end, "total_price": ns.cheapestprice | round(2), "between": periodStart | string + " - " + periodEnd | string} %} 
+              {{ res }}
+            {% else %}
+              {{ 0 }}
+            {% endif %}
+            {# end of template #}
+  - sensor:
+      # Give sensor a custom name
+      - name: shf_heating_off
+        device_class: timestamp
+        state: >
+          {# Add previous sensor name including attributes to sensorName variable #}
+          {% set sensorName = "shf_heating_on" %}
+
+          {# Do not edit template below this line #}
+          {% if state_attr("sensor." + sensorName, "period") %}
+            {% set end = state_attr("sensor." + sensorName, "period")["end_timestamp"] %}
+            {{ as_datetime(end).isoformat() }}
+          {% else %}
+            {{ 0 }}
+          {% endif %}
+          {# end of template #}
